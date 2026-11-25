@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gringa Fluente — Mapa de Associações Brasileiras na França</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<style>
+:root{--b:#93304c;--bd:#6b1e33;--g:#e2ba64;--bg:#fdfafb;--t:#2b2226;--m:#7a6d72;--l:#eadfe2}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{font:14px/1.5 Inter,system-ui,sans-serif;color:var(--t);background:var(--bg);display:flex;flex-direction:column}
+header{background:linear-gradient(135deg,var(--bd),var(--b));color:#fff;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+h1{font:700 21px 'Playfair Display',serif;margin:0}h1 small{font:300 12px Inter;color:var(--g);margin-left:8px}
+.btn{border:0;border-radius:8px;padding:8px 13px;font:600 13px Inter,sans-serif;cursor:pointer;background:var(--g);color:var(--bd)}
+.btn.o{background:#fff;color:var(--b);border:1px solid var(--l)}
+main{flex:1;display:flex;min-height:0}
+aside{width:390px;background:#fff;display:flex;flex-direction:column;box-shadow:4px 0 20px #0001;z-index:500;min-height:0}
+#map{flex:1;z-index:1}
+.sb{padding:14px;border-bottom:1px solid var(--l);position:relative}
+#q{width:100%;padding:11px 14px;border:1.5px solid var(--l);border-radius:12px;font:inherit;outline:0}#q:focus{border-color:var(--b)}
+#sug{position:absolute;left:14px;right:14px;top:58px;background:#fff;border:1px solid var(--l);border-radius:10px;box-shadow:0 10px 25px #0002;z-index:900;display:none;max-height:270px;overflow:auto}
+#sug div{padding:9px 12px;cursor:pointer;font-size:13px}#sug div:hover{background:#f8eef1}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chip{border:1px solid var(--l);background:#fff;border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer}.chip.on{background:var(--b);color:#fff;border-color:var(--b)}
+#list,#det{flex:1;overflow:auto;padding:12px 14px}#det{display:none}
+.cnt{color:var(--m);font-size:12px;margin-bottom:10px}.cnt a{color:var(--b);cursor:pointer}
+.card{border:1px solid var(--l);border-left:4px solid var(--g);border-radius:10px;padding:10px 12px;margin-bottom:10px;cursor:pointer}.card:hover{background:#fbf3f5}
+.card b,#det h2{font:600 17px 'Playfair Display',serif;margin:0}.card small{color:var(--m);display:block}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;color:#fff;margin:4px 4px 0 0}
+.row{display:flex;gap:8px;margin:9px 0;word-break:break-word}.row a{color:var(--b)}
+.bd{font-size:12px;padding:3px 10px;border-radius:99px;display:inline-block;margin:8px 0}.ok{background:#e8f5ec;color:#1b6b3a}.us{background:#fff4dc;color:#8a5a00}
+.note{font-size:11px;color:var(--m);border-top:1px solid var(--l);padding-top:10px;margin-top:14px}
+.pin{width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px #0005;display:grid;place-items:center}.pin span{transform:rotate(45deg);font-size:15px}
+.cl{background:var(--b);color:#fff;border:3px solid var(--g);border-radius:50%;display:grid;place-items:center;font-weight:700}
+dialog{border:0;border-radius:14px;padding:20px;width:min(520px,94vw);max-height:92vh;overflow:auto;box-shadow:0 20px 60px #0005}dialog::backdrop{background:#0006}
+dialog h2{font:700 22px 'Playfair Display',serif;color:var(--b);margin:0 0 4px}
+dialog label{display:block;font-size:12px;font-weight:600;margin-top:10px}
+dialog input,dialog textarea{width:100%;padding:8px 10px;border:1.5px solid var(--l);border-radius:8px;font:inherit}
+dialog .cb{display:inline-flex;gap:4px;font-weight:400;margin-right:10px;align-items:center}dialog .cb input{width:auto}
+@media(max-width:800px){main{flex-direction:column}#map{order:-1;flex:none;height:42vh}aside{width:100%;flex:1}h1 small{display:none}}
+</style></head><body>
+<header><h1>Gringa Fluente <small>| Mapa das associações brasileiras na França</small></h1>
+<div><button class="btn" id="add">＋ Adicionar associação</button> <button class="btn o" id="exp" title="Baixar contribuições locais em JSON">⬇ JSON</button></div></header>
+<main>
+<aside>
+<div class="sb"><input id="q" type="search" placeholder="🔍 Buscar cidade, endereço ou associação…" autocomplete="off"><div id="sug"></div>
+<div class="chips" id="chips"></div></div>
+<div id="list"></div><div id="det"></div>
+</aside>
+<div id="map"></div>
+</main>
+
+<dialog id="dlg"><form id="f" method="dialog">
+<h2>Adicionar associação</h2><div style="font-size:12px;color:var(--m)">Sua contribuição aparece no mapa como “não verificada” até ser aprovada.</div>
+<label>Nome *<input name="name" required></label>
+<label>Categorias *</label><div id="cbs"></div>
+<label>Cidade *<input name="city" required></label>
+<label>Endereço<input name="address" placeholder="Número, rua, código postal"></label>
+<div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap"><button type="button" class="btn o" id="loc">📍 Localizar endereço</button><button type="button" class="btn o" id="pick">🖱 Clicar no mapa</button><span id="pos" style="font-size:12px;color:var(--m)"></span></div>
+<label>Telefone<input name="phone" type="tel"></label><label>E-mail<input name="email" type="email"></label>
+<label>Site ou Instagram<input name="site"></label><label>Horário de funcionamento<input name="hours" placeholder="Ex.: ter e qui, 19h–21h"></label>
+<label>Descrição<textarea name="desc" rows="3"></textarea></label>
+<div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end"><button type="button" class="btn o" id="cx">Cancelar</button><button class="btn">Salvar e enviar</button></div>
+</form></dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script>
+/* ===== CONFIGURAÇÃO (preencha para automatizar) =====
+ endpoint: URL que recebe o POST (JSON) de novas associações — Formspree, Google Apps Script, Supabase…
+ email:    alternativa sem servidor: abre o e-mail do usuário já preenchido para você
+ dataUrl:  JSON público (GitHub raw, Google Sheets publicado…) com as associações APROVADAS; é lido a cada visita */
+const CONFIG={endpoint:"",email:"",dataUrl:""};
+
+const C={cap:["Capoeira","🥋","#93304c"],dan:["Dança","💃","#c2410c"],mus:["Música","🎵","#7c3aed"],cul:["Cultura & cinema","🎬","#0f766e"],edu:["Estudantes & língua","🎓","#1d4ed8"],soc:["Comunidade","🤝","#b45309"]};
+const R=(name,city,cats,lat,lng,approx,address,phone,email,site,hours,desc)=>({name,city,cats:cats.split(","),lat,lng,approx,address,phone,email,site,hours,desc,ok:1});
+const TL="https://metropole.toulouse.fr/associations/annuaire/",NA="https://metropole.nantes.fr/mes-services-mon-quotidien/espace-associations-nantaises/annuaire-des-associations-nantaises/",HA="https://www.helloasso.com/associations/";
+const T=[43.6047,1.4442],N=[47.2184,-1.5536],P=[48.8566,2.3522],LY=[45.764,4.8357];
+let ALL=[
+R("Maison du Brésil","Paris","edu,cul",48.81778,2.34361,0,"7L boulevard Jourdan, 75014 Paris","+33 1 83 94 40 04","maisondubresil@maisondubresil.org","https://www.maisondubresil.org","","Residência de estudantes, professores e pesquisadores brasileiros na Cité Internationale Universitaire (projeto de Le Corbusier e Lúcio Costa, 1959). Acesso: RER B Cité Universitaire, tram T3 Charléty."),
+R("Autres Brésils","Paris","cul,soc",...P,1,"","","","https://www.autresbresils.net","","Associação que há mais de 20 anos divulga a realidade social, política, ecológica e cultural do Brasil: festivais de cinema documental, debates e publicações. Eventos recentes no 54 rue Saint-Jacques, 75005."),
+R("Alter Brasilis (capoeira)","Paris","cap",48.8644,2.3626,1,"5 rue Perrée, 75003 Paris","07 70 26 41 04","contact@alterbrasilis.com","","","Aulas de capoeira em Paris. Sem recepção no local: entre em contato antes. (Nome deduzido do e-mail de contato listado pela Prefeitura de Paris.)"),
+R("Gingando","Lyon","cap,dan,mus",...LY,1,"2 rue Dumont (2º andar), 69004 Lyon","09 81 04 18 83","","https://www.gingando-capoeira-lyon.com","","Capoeira e dança brasileira (aulas semanais, oficinas e stages), percussão e festival Brasilyon. Sede: Maison des associations du 4e, 28 rue Denfert-Rochereau."),
+R("Forró em Lyon","Lyon","dan,mus",...LY,1,"","","",HA+"forro-em-lyon","","Criada em 2011: aulas regulares de forró, stages, shows e festas."),
+R("Tá no Pé – Brasil","Lyon","dan,cul",...LY,1,"","","",HA+"ta-no-pe-brasil","","Danças brasileiras na região lionesa (aulas e stages com Tereza Azevedo) e projeto cultural em Piabetá (RJ). Criada em 2019."),
+R("Capoeir’axé Toulouse","Toulouse","cap,mus",...T,1,"","07 68 84 47 58","",TL+"capoeiraxe-toulouse","","Promove a cultura afro-brasileira por meio do esporte e da música."),
+R("Timbala Yé","Toulouse","cap,dan",...T,1,"","07 77 07 44 70","",TL+"timbala-ye","","Capoeira, cantos e danças afro-brasileiras no centro de Toulouse."),
+R("Capoeiragem Toulouse","Toulouse","cap",...T,1,"","06 67 75 86 04","",TL+"capoeiragem-toulouse","","Ateliês de capoeira em Toulouse e arredores: movimento, música, acrobacia, dança e história."),
+R("Quilombo Capoeira Toulouse (QCT)","Toulouse","cap",...T,1,"","06 23 65 41 87","",TL+"quilombo-capoeira-toulouse","","Aulas para crianças e adultos, stages, eventos culturais e intervenções em escolas. Bairros: Saint-Michel, Saint-Agne, Empalot, Busca, Île du Ramier, Monplaisir."),
+R("Association Luanda","Toulouse","cap,dan,mus",...T,1,"","","",TL+"association-luanda","","Atividades em torno de capoeira, maculelê, samba de roda e culturas africanas e brasileiras."),
+R("Arte Capoeira Toulouse (ACT)","Toulouse","cap",...T,1,"","","",TL+"arte-capoeira-toulouse","","Capoeira com o professor Baba, de Salvador (Bahia): cantos, instrumentos e movimentos. Aulas na França desde 2007."),
+R("Malembe","Toulouse","cap,dan,cul",...T,1,"","","",TL+"malembe","","Práticas coletivas afro-brasileiras abertas a iniciantes e experientes."),
+R("ABC – Association Brésilienne Culturelle","Toulouse","soc,edu",...T,1,"","","",TL+"abc-association-bresilienne-culturelle","","Favorece a integração dos brasileiros na comunidade toulousaine, promovendo a cultura e a língua brasileiras."),
+R("Art et Culture Brésiliens","Nantes","cap,dan",...N,1,"4 avenue des Lauriers, 44100 Nantes","","",NA+"art-et-culture-bresiliens","","Capoeira, dança brasileira, zumdança e intercâmbio humanitário com Salvador. Aulas na Maison de quartier du Breil (52 rue du Breil) e na Salle du Jamet (25 rue du Jamet)."),
+R("Capoeira et Culture Brésilienne (Jacobina Arte)","Nantes","cap,dan,soc",...N,1,"22 rue Émile Péhant, 44000 Nantes","","",NA+"association-capoeira-et-culture-bresilienne-nantes-saint-sebastien-sur-loire-vertou-reze","","Capoeira e dança para crianças, jovens e adultos em Nantes, Saint-Sébastien, Vertou e Rezé; campanhas solidárias para crianças de Jacobina (BA)."),
+R("Estilo Faixa France","Nantes","cap,dan",47.2118,-1.6489,1,"35 avenue de l’Angevinière, 44800 Saint-Herblain","","",NA+"association-estilo-faixa-france","","Difusão da cultura brasileira: capoeira, danças e ritmos, eventos e intercâmbios linguísticos."),
+R("Mundurucu","Nantes","cul",...N,1,"25 rue Corentin Bourveau, 44300 Nantes","","",NA+"mundurucu","","Polo cultural franco-brasileiro: promoção e difusão da cultura brasileira em rede."),
+R("Axe Brasil","Nantes","cap,cul,edu",...N,1,"3 rue de Québec, 44300 Nantes","","",NA+"axe-brasil","","Lazer sociocultural com folclore brasileiro, capoeira, intercâmbio humanitário e linguístico França–Brasil."),
+R("Luz Capoeira","Nantes","cap,mus",...N,1,"11 rue Bias, 44000 Nantes","06 71 07 92 16","",NA+"association-luz-capoeira","","Ensino de artes, músicas, espetáculos, danças e lutas afro-brasileiras."),
+R("Imbaúba Brasil","Nantes","cap",...N,1,"3 rue René Dumont, 44300 Nantes","","",NA+"association-imbauba-brasil","","Prática e promoção da capoeira e da cultura afro-brasileira, aberta a todos os públicos."),
+R("Balada do Brasil","Nantes","mus",...N,1,"35 rue des Olivettes, 44000 Nantes","09 52 85 61 60","caminhada1@outlook.fr",NA+"balada-do-brasil","","Promoção da cultura musical brasileira."),
+R("Capoeir’Art","Marseille","cap,dan,edu",43.2958,5.3763,1,"Cité des Associations, 93 La Canebière, 13001 Marseille","","","https://www.marseille-tourisme.com/offres/capoeir-art-marseille-1er-fr-3383551/","","Cultura afro-brasileira por meio de capoeira, dança, música, canto e aulas de português (professor Formando Juruna)."),
+R("CAFOFO – Associação dos brasileiros de Montpellier","Montpellier","soc,cul",43.6108,3.8767,1,"","","",HA+"cafofo-association-des-bresiliens-de-montpellier","","Fundada em 2018: rede de cooperação para acolher brasileiros e difundir a cultura brasileira com ações socioeducativas."),
+R("Brésil Volcanique","Clermont-Ferrand","mus,dan,soc",45.7772,3.087,1,"Maison de Quartier de Saint-Jacques, Clermont-Ferrand","","",HA+"association-bresil-volcanique","","Fundada em 2004: promove a cultura popular brasileira e o laço social; tem trupe de espetáculo e grupos musicais."),
+R("Lingua Capoeira Tours","Tours","cap,edu,dan",47.3941,0.6848,1,"Tours (37000)","07 77 33 96 07","linguacapoeira37@gmail.com","","","Cultura brasileira em todos os aspectos: capoeira, línguas, danças e músicas.")
+];
+ALL.forEach((a,i)=>a.id="s"+i);
+
+const ls=(k,v)=>{try{if(v===undefined)return JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}};
+const G=ls("gf_geo")||{},U=ls("gf_user")||[];
+ALL.forEach(a=>{if(G[a.id]){a.lat=G[a.id].lat;a.lng=G[a.id].lng;a.approx=0}});ALL.push(...U);
+const esc=s=>String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+const url=u=>/^https?:\/\//.test(u)?u:"https://"+u;
+const dist=(o,a)=>{const r=Math.PI/180,x=(a.lng-o[1])*r*Math.cos((a.lat+o[0])*r/2),y=(a.lat-o[0])*r;return Math.hypot(x,y)*6371};
+
+const map=L.map("map",{zoomControl:false}).setView([46.6,2.4],6);
+L.control.zoom({position:"topright"}).addTo(map);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{attribution:"© OpenStreetMap © CARTO",maxZoom:19}).addTo(map);
+const cg=L.markerClusterGroup({maxClusterRadius:45,iconCreateFunction:c=>L.divIcon({html:c.getChildCount(),className:"cl",iconSize:[38,38]})});map.addLayer(cg);
+const mk=a=>{const c=C[a.cats[0]]||C.soc;return L.marker([a.lat,a.lng],{title:a.name,icon:L.divIcon({className:"",html:`<div class="pin" style="background:${c[2]}"><span>${c[1]}</span></div>`,iconSize:[32,32],iconAnchor:[16,32]})}).on("click",()=>show(a))};
+
+let cf=new Set(),org=null,orgLabel="";
+const $=id=>document.getElementById(id);
+$("chips").innerHTML=Object.entries(C).map(([k,v])=>`<span class="chip" data-k="${k}">${v[1]} ${v[0]}</span>`).join("");
+$("chips").onclick=e=>{const k=e.target.dataset.k;if(!k)return;cf.has(k)?cf.delete(k):cf.add(k);e.target.classList.toggle("on");render()};
+$("cbs").innerHTML=Object.entries(C).map(([k,v])=>`<label class="cb"><input type="checkbox" name="cat" value="${k}">${v[1]} ${v[0]}</label>`).join("");
+
+function render(){
+ const v=ALL.filter(a=>(!cf.size||a.cats.some(c=>cf.has(c)))&&(!org||dist(org,a)<=30));
+ v.sort((a,b)=>org?dist(org,a)-dist(org,b):a.city.localeCompare(b.city)||a.name.localeCompare(b.name));
+ cg.clearLayers();cg.addLayers(v.map(a=>a.m||(a.m=mk(a))));
+ $("list").innerHTML=`<div class="cnt">${v.length} associaç${v.length==1?"ão":"ões"} ${org?`em até 30 km de <b>${esc(orgLabel)}</b> · <a id="clr">ver toda a França</a>`:"na França"}</div>`+
+ (v.length?v.map(a=>`<div class="card" data-id="${a.id}"><b>${esc(a.name)}</b><small>📍 ${esc(a.city)}${org?" · "+Math.round(dist(org,a))+" km":""}</small>${a.cats.map(c=>`<span class="tag" style="background:${(C[c]||C.soc)[2]}">${(C[c]||C.soc)[0]}</span>`).join("")}</div>`).join(""):`<p>Nada por aqui ainda. Conhece uma associação nesta região?</p><button class="btn" onclick="$('add').click()">＋ Adicionar</button>`);
+ const c=$("clr");if(c)c.onclick=()=>{org=null;$("q").value="";map.flyTo([46.6,2.4],6);render()};
+}
+$("list").onclick=e=>{const c=e.target.closest(".card");if(c)show(ALL.find(a=>a.id==c.dataset.id))};
+
+async function geo(q){try{const j=await(await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=fr&q="+encodeURIComponent(q))).json();return j.map(x=>({lat:+x.lat,lng:+x.lon,label:x.display_name}))}catch(e){return[]}}
+
+function show(a){
+ const row=(i,h)=>h?`<div class="row"><span>${i}</span><span>${h}</span></div>`:"";
+ $("list").style.display="none";$("det").style.display="block";
+ $("det").innerHTML=`<button class="btn o" id="bk">← Voltar</button><h2 style="margin-top:14px">${esc(a.name)}</h2>
+ <div>${a.cats.map(c=>`<span class="tag" style="background:${(C[c]||C.soc)[2]}">${(C[c]||C.soc)[1]} ${(C[c]||C.soc)[0]}</span>`).join("")}</div>
+ <span class="bd ${a.ok?"ok":"us"}">${a.ok?"✔ Dados de fontes públicas":"⏳ Contribuição não verificada"}</span>
+ ${row("📍",a.address?`${esc(a.address)}<br><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.address)}">Abrir no Google Maps</a>`:`${esc(a.city)} <i style="color:var(--m)">(endereço não informado)</i>`)}
+ ${row("📞",a.phone&&`<a href="tel:${esc(a.phone.replace(/\s/g,""))}">${esc(a.phone)}</a>`)}
+ ${row("✉️",a.email&&`<a href="mailto:${esc(a.email)}">${esc(a.email)}</a>`)}
+ ${row("🔗",a.site&&`<a target="_blank" rel="noopener" href="${esc(url(a.site))}">${esc(a.site.replace(/^https?:\/\/(www\.)?/,"").slice(0,48))}</a>`)}
+ ${row("🕒",esc(a.hours)||"<i style='color:var(--m)'>Horários não informados — confirme com a associação</i>")}
+ ${a.desc?`<p style="border-left:4px solid var(--g);padding-left:10px">${esc(a.desc)}</p>`:""}
+ ${a.approx?`<div class="note">📌 Posição aproximada (centro da cidade).</div>`:""}
+ <div class="note">Informações coletadas em diretórios públicos (nov./2026) e podem ter mudado. Confirme antes de ir. Algo errado? Use “Adicionar associação” para enviar a correção.</div>`;
+ $("bk").onclick=back;
+ map.flyTo([a.lat,a.lng],a.approx?12:15,{duration:1});
+ if(a.approx&&a.address)geo(a.address).then(r=>{if(r[0]&&$("det").style.display=="block"){a.lat=r[0].lat;a.lng=r[0].lng;a.approx=0;G[a.id]={lat:a.lat,lng:a.lng};ls("gf_geo",G);a.m&&a.m.setLatLng([a.lat,a.lng]);cg.refreshClusters();map.flyTo([a.lat,a.lng],15,{duration:.8})}});
+}
+function back(){$("det").style.display="none";$("list").style.display="block"}
+
+/* Busca: associações e cidades locais (instantâneo) + endereços/cidades via Nominatim */
+let tm;const sug=$("sug");
+function setOrigin(lat,lng,label){org=[lat,lng];orgLabel=label;sug.style.display="none";back();map.flyTo([lat,lng],11);render()}
+$("q").oninput=e=>{clearTimeout(tm);const q=norm(e.target.value.trim());if(q.length<2){sug.style.display="none";return}
+ const cities=[...new Set(ALL.map(a=>a.city))].filter(c=>norm(c).includes(q)).map(c=>({t:"🏙 "+c,f:()=>{const a=ALL.find(x=>x.city==c);setOrigin(a.lat,a.lng,c)}}));
+ const names=ALL.filter(a=>norm(a.name).includes(q)).slice(0,4).map(a=>({t:"🏛 "+a.name+" — "+a.city,f:()=>{sug.style.display="none";show(a)}}));
+ const draw=x=>{sug.innerHTML="";x.forEach(o=>{const d=document.createElement("div");d.textContent=o.t;d.onclick=o.f;sug.appendChild(d)});sug.style.display=x.length?"block":"none"};
+ let cur=[...cities,...names];draw(cur);
+ tm=setTimeout(async()=>{const r=await geo(e.target.value);cur=[...cur,...r.slice(0,4).map(p=>({t:"📍 "+p.label.split(",").slice(0,3).join(","),f:()=>setOrigin(p.lat,p.lng,p.label.split(",")[0])}))];draw(cur)},400)};
+$("q").onkeydown=e=>{if(e.key=="Enter"){const d=sug.firstChild;if(d)d.click()}};
+document.addEventListener("click",e=>{if(!e.target.closest("#sug,#q"))sug.style.display="none"});
+
+/* Adicionar associação */
+const dlg=$("dlg"),f=$("f");let pos=null;
+const setPos=p=>{pos=p;$("pos").textContent=p?`✔ ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`:""};
+$("add").onclick=()=>{setPos(null);dlg.showModal()};$("cx").onclick=()=>dlg.close();
+$("loc").onclick=async()=>{const r=await geo(`${f.address.value} ${f.city.value}`);r[0]?setPos(r[0]):alert("Endereço não encontrado. Tente outro ou clique no mapa.")};
+$("pick").onclick=()=>{dlg.close();alert("Clique no mapa para marcar o local.");map.once("click",e=>{setPos({lat:e.latlng.lat,lng:e.latlng.lng});dlg.showModal()})};
+f.onsubmit=async e=>{e.preventDefault();
+ const d=Object.fromEntries(new FormData(f));d.cats=[...f.querySelectorAll("[name=cat]:checked")].map(x=>x.value);delete d.cat;
+ if(!d.cats.length)return alert("Escolha ao menos uma categoria.");
+ if(!pos){const r=await geo(`${d.address} ${d.city}`);if(!r[0])return alert("Não consegui localizar. Use “Localizar endereço” ou clique no mapa.");setPos(r[0])}
+ const a={...d,lat:pos.lat,lng:pos.lng,approx:0,ok:0,id:"u"+Date.now()};
+ U.push(a);ls("gf_user",U);ALL.push(a);dlg.close();f.reset();render();show(a);
+ try{if(CONFIG.endpoint)await fetch(CONFIG.endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(a)});
+  else if(CONFIG.email)location.href=`mailto:${CONFIG.email}?subject=${encodeURIComponent("Nova associação: "+a.name)}&body=${encodeURIComponent(JSON.stringify(a,null,1))}`}catch(e){}
+};
+$("exp").onclick=()=>{const l=document.createElement("a");l.href=URL.createObjectURL(new Blob([JSON.stringify(U,null,2)],{type:"application/json"}));l.download="contribuicoes.json";l.click()};
+
+if(CONFIG.dataUrl)fetch(CONFIG.dataUrl).then(r=>r.json()).then(j=>{j.forEach((x,i)=>{x.id=x.id||"r"+i;x.ok=1;x.cats=x.cats||["soc"];ALL.push(x)});render()}).catch(()=>{});
+render();
+</script></body></html>
